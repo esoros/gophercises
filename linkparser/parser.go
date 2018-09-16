@@ -8,6 +8,11 @@ import (
 	"golang.org/x/net/html"
 )
 
+type anchor struct {
+	href string
+	text string
+}
+
 func main() {
 
 	file, fileErr := os.Open("input.html")
@@ -21,21 +26,47 @@ func main() {
 }
 
 func process(tokenizer *html.Tokenizer) {
+
+	currentAnchor := anchor{}
+	insideAnchor := false
+
+	//refactor this out to use classes instead..
 	for {
-		tokenMetadata := tokenizer.Next()
+		tokenType := tokenizer.Next()
 		switch {
-		case tokenMetadata == html.ErrorToken:
+
+		case tokenType == html.ErrorToken:
 			return
-		case tokenMetadata == html.StartTagToken:
+
+		case tokenType == html.StartTagToken:
+
 			token := tokenizer.Token()
-			fmt.Printf("token start %s\n", token.Data)
-			//once we find the start of an <A> tag
-		case tokenMetadata == html.EndTagToken:
+			if token.Data == "a" && !insideAnchor {
+				currentAnchor.href = getAttribute("href", token)
+				insideAnchor = true
+			}
+
+		case tokenType == html.EndTagToken:
 			token := tokenizer.Token()
-			fmt.Printf("token end %s\n", token.Data)
-		case tokenMetadata == html.TextToken:
+			if token.Data == "a" && insideAnchor {
+				insideAnchor = false
+				fmt.Printf("closing anchor %s\n", currentAnchor.href)
+			}
+
+		case tokenType == html.TextToken:
 			token := tokenizer.Token()
-			fmt.Printf("token text %s\n", strings.TrimSpace(token.String()))
+			if insideAnchor {
+				currentAnchor.text += strings.TrimSpace(token.String())
+			}
 		}
 	}
+}
+
+func getAttribute(key string, token html.Token) string {
+	for _, k := range token.Attr {
+		if k.Key == key {
+			return k.Val
+		}
+	}
+	return ""
 }
