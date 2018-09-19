@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -9,8 +10,8 @@ import (
 )
 
 type anchor struct {
-	href string
-	text string
+	Href string `json:"href"`
+	Text string `json:"text"`
 }
 
 func main() {
@@ -28,21 +29,24 @@ func main() {
 func process(tokenizer *html.Tokenizer) {
 
 	currentAnchor := anchor{}
+	anchors := make([]anchor, 0)
 	insideAnchor := false
 
-	//refactor this out to use classes instead..
+	//refactor this out to use classes instead.. (or whatever makes sense in go)
 	for {
 		tokenType := tokenizer.Next()
 		switch {
 
 		case tokenType == html.ErrorToken:
+			bytes, _ := json.Marshal(anchors)
+			fmt.Println(fmt.Sprintf("%s", bytes))
 			return
 
 		case tokenType == html.StartTagToken:
 
 			token := tokenizer.Token()
 			if token.Data == "a" && !insideAnchor {
-				currentAnchor.href = getAttribute("href", token)
+				currentAnchor.Href = getAttribute("href", token)
 				insideAnchor = true
 			}
 
@@ -50,13 +54,14 @@ func process(tokenizer *html.Tokenizer) {
 			token := tokenizer.Token()
 			if token.Data == "a" && insideAnchor {
 				insideAnchor = false
-				fmt.Printf("closing anchor %s\n", currentAnchor.href)
+				anchors = append(anchors, currentAnchor)
+				fmt.Printf("Anchor close %s\n", currentAnchor.Text)
 			}
 
 		case tokenType == html.TextToken:
 			token := tokenizer.Token()
 			if insideAnchor {
-				currentAnchor.text += strings.TrimSpace(token.String())
+				currentAnchor.Text = fmt.Sprintf("%s%s ", currentAnchor.Text, strings.TrimSpace(token.String()))
 			}
 		}
 	}
