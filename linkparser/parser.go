@@ -32,7 +32,7 @@ func process(tokenizer *html.Tokenizer) {
 	anchors := make([]anchor, 0)
 	insideAnchor := false
 
-	//refactor this out to use classes instead.. (or whatever makes sense in go)
+	//Tokenizer just does a DFS around the graph...
 	for {
 		tokenType := tokenizer.Next()
 		switch {
@@ -43,7 +43,6 @@ func process(tokenizer *html.Tokenizer) {
 			return
 
 		case tokenType == html.StartTagToken:
-
 			token := tokenizer.Token()
 			if token.Data == "a" && !insideAnchor {
 				currentAnchor.Href = getAttribute("href", token)
@@ -55,7 +54,6 @@ func process(tokenizer *html.Tokenizer) {
 			if token.Data == "a" && insideAnchor {
 				insideAnchor = false
 				anchors = append(anchors, currentAnchor)
-				fmt.Printf("Anchor close %s\n", currentAnchor.Text)
 			}
 
 		case tokenType == html.TextToken:
